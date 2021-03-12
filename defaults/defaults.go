@@ -117,3 +117,8 @@ var (
 	// CiliumPodSelector is the pod selector to be used for the Cilium agents.
 	CiliumPodSelector = "k8s-app=cilium"
 )
+
+// CiliumVersion return the default Cilium version used by the cli.
+func CiliumVersion() string {
+	return Version
+}

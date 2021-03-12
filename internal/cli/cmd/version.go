@@ -18,6 +18,8 @@ import (
 	"fmt"
 	"runtime"
 
+	"github.com/cilium/cilium-cli/defaults"
+
 	"github.com/spf13/cobra"
 )
 
@@ -44,8 +46,9 @@ func newCmdVersion() *cobra.Command {
 			case GitHash != "":
 				gitInfo = fmt.Sprintf("@%s", GitHash)
 			}
-			// TODO: add support for reporting the Cilium version
-			fmt.Printf("cilium-cli: v%s%s compiled with %v on %v/%v\n", Version, gitInfo, runtime.Version(), runtime.GOOS, runtime.GOARCH)
+			// TODO: add support for reporting the Cilium version running in
+			// the cluster, if any.
+			fmt.Printf("cilium-cli: v%s%s (%s images) compiled with %v on %v/%v\n", Version, gitInfo, defaults.CiliumVersion(), runtime.Version(), runtime.GOOS, runtime.GOARCH)
 		},
 	}
 }
