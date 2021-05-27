@@ -22,7 +22,7 @@ import (
 )
 
 // PodToWorld sends multiple HTTP(S) requests to google.com
-// from random client Pods.
+// from all client Pods in the test context.
 func PodToWorld(name string) check.Scenario {
 	return &podToWorld{
 		name: name,
@@ -47,48 +47,32 @@ func (s *podToWorld) Run(ctx context.Context, t *check.Test) {
 	ghttps := check.HTTPEndpoint("google-https", "https://google.com")
 	wwwghttp := check.HTTPEndpoint("www-google-http", "http://www.google.com")
 
-	// With https, over port 443.
-	if client := t.Context().RandomClientPod(); client != nil {
-		cmd := curl(ghttps)
-
-		t.NewAction(s, "https-to-google", client, ghttps).Run(func(a *check.Action) {
-			a.ExecInPod(ctx, cmd)
-
-			egressFlowRequirements := a.GetEgressRequirements(check.FlowParameters{
-				DNSRequired: true,
-				RSTAllowed:  true,
-			})
-			a.ValidateFlows(ctx, client.Name(), client.Pod.Status.PodIP, egressFlowRequirements)
-		})
+	fp := check.FlowParameters{
+		DNSRequired: true,
+		RSTAllowed:  true,
 	}
 
-	// With http, over port 80.
-	if client := t.Context().RandomClientPod(); client != nil {
-		cmd := curl(ghttp)
+	var i int
 
-		t.NewAction(s, "http-to-google", client, ghttp).Run(func(a *check.Action) {
-			a.ExecInPod(ctx, cmd)
-
-			egressFlowRequirements := a.GetEgressRequirements(check.FlowParameters{
-				DNSRequired: true,
-				RSTAllowed:  true,
-			})
-			a.ValidateFlows(ctx, client.Name(), client.Pod.Status.PodIP, egressFlowRequirements)
+	for _, client := range t.Context().ClientPods() {
+		// With https, over port 443.
+		t.NewAction(s, fmt.Sprintf("https-to-google-%d", i), &client, ghttps).Run(func(a *check.Action) {
+			a.ExecInPod(ctx, curl(ghttps))
+			a.ValidateFlows(ctx, client.Name(), client.Pod.Status.PodIP, a.GetEgressRequirements(fp))
 		})
-	}
 
-	// With http to www.google.com.
-	if client := t.Context().RandomClientPod(); client != nil {
-		cmd := curl(wwwghttp)
-
-		t.NewAction(s, "http-to-www-google", client, wwwghttp).Run(func(a *check.Action) {
-			a.ExecInPod(ctx, cmd)
-
-			egressFlowRequirements := a.GetEgressRequirements(check.FlowParameters{
-				DNSRequired: true,
-				RSTAllowed:  true,
-			})
-			a.ValidateFlows(ctx, client.Name(), client.Pod.Status.PodIP, egressFlowRequirements)
+		// With http, over port 80.
+		t.NewAction(s, fmt.Sprintf("http-to-google-%d", i), &client, ghttp).Run(func(a *check.Action) {
+			a.ExecInPod(ctx, curl(ghttp))
+			a.ValidateFlows(ctx, client.Name(), client.Pod.Status.PodIP, a.GetEgressRequirements(fp))
 		})
+
+		// With http to www.google.com.
+		t.NewAction(s, fmt.Sprintf("http-to-www-google-%d", i), &client, wwwghttp).Run(func(a *check.Action) {
+			a.ExecInPod(ctx, curl(wwwghttp))
+			a.ValidateFlows(ctx, client.Name(), client.Pod.Status.PodIP, a.GetEgressRequirements(fp))
+		})
+
+		i++
 	}
 }
