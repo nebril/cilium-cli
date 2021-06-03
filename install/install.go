@@ -1019,13 +1019,13 @@ const (
 )
 
 type AzureParameters struct {
-	ResourceGroupName     string
-	ResourceGroup         string
-	SubscriptionName      string
-	SubscriptionID        string
-	TenantID              string
-	ClientID              string
-	ClientSecret          string
+	ResourceGroupName string
+	ResourceGroup     string
+	SubscriptionName  string
+	SubscriptionID    string
+	TenantID          string
+	ClientID          string
+	ClientSecret      string
 }
 
 type Parameters struct {
@@ -1141,6 +1141,10 @@ func NewK8sInstaller(client k8sInstallerImplementation, p Parameters) (*K8sInsta
 
 func (k *K8sInstaller) Log(format string, a ...interface{}) {
 	fmt.Fprintf(k.params.Writer, format+"\n", a...)
+}
+
+func (k *K8sInstaller) Exec(command string, args ...string) ([]byte, error) {
+	return utils.Exec(k, command, args...)
 }
 
 func (k *K8sInstaller) generateConfigMap() (*corev1.ConfigMap, error) {
